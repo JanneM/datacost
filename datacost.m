@@ -7,17 +7,13 @@ function datacost(data,varargin)
 % Calculates the cost of the total amount of data based on each specified data plan and overage costs.
 % By default if quota is exceeded with only 4 days remaining in billing cycle, no extra data are purchased.
 % Number of days in month is based on total simulated usage for that month divided by 30 days.
+% For more than two devices, the shared family plans are used by default. Otherwise the individual plans are used.
 %
 % There is  no limit on the number of users that can be included other than the available system memory.
 % data are stored in a MxNxU matrix where M is the number of months, N is the number of simulations (1000),
 % and U is the number of users. MATLAB requires continuous blocks of memory to store variables,
 % so it is possible to run out of usable memory, especially as N is increased.
-% 
-% This function could be used in conjunction with the ALLFITDIST function to find the best fit.
-% However, the validity of this approach is questionable since realistically, the number of input data
-% will most likely be very few.
-% http://www.mathworks.com/matlabcentral/fileexchange/34943-fit-all-valid-parametric-probability-distributions-to-data
-%
+% %
 % REQUIRED INPUT:
 %	data  cell array of monthly data consumption amounts in GB, one cell per user/device
 %
@@ -33,6 +29,11 @@ function datacost(data,varargin)
 %	dist (normal) {cell array} Distribution type that is fit to input 'data' to create probability density function (pdf). If only one value is input, it is applied to all data.
 %	currency (man yen) {character} Currency of prices
 %	plot (all) {character} 'all': plots results and PDFs; 'none': plotting off; 'results': plots only results; 'pdfs' plots only PDFs
+% 
+%This function could be used in conjunction with the ALLFITDIST function to find the best fit.
+% However, the validity of this approach is questionable since realistically, the number of input data
+% will most likely be very few.
+% http://www.mathworks.com/matlabcentral/fileexchange/34943-fit-all-valid-parametric-probability-distributions-to-data
 
 tic
 
