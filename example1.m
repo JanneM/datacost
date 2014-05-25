@@ -29,4 +29,4 @@ disp([sum(m(1,:))-sum(s) sum(m(1,:)) sum(m(1,:))+sum(s)])
 disp('low range, median high range')
 disp([sum(m(2,:))-sum(s) sum(m(2,:)) sum(m(2,:))+sum(s)])
 
-datacost_new(data,'dist',dist);
+datacost(data,'dist',dist);
