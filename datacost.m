@@ -216,15 +216,14 @@ if strcmpi(plots,'all')==1 | strcmpi(plots,'results')==1
 	axes('units','pixels','position',axessize)
 	hold(gca,'on')
 	for i=1:size(cummean,2)
-		shadedErrorBar(1:month,cummean(:,i),cumstd(:,i),{'color',colors(i,:)},1)
+		if strcmp('man yen',currency)==1
+			shadedErrorBar(1:month,cummean(:,i)/10^4,cumstd(:,i)/10^4,{'color',colors(i,:)},1)
+		else
+			shadedErrorBar(1:month,cummean(:,i),cumstd(:,i),{'color',colors(i,:)},1)
+		end
 	end
-	ylab=['Cumulative cost (' currency ')'];
-	yticks=get(gca,'ytick');
-	if strcmp('man yen',currency)==1
-		yticklabels=yticks./10000;
-	end
-	ylabel(ylab)
-	set(gca,'tickdir','out','ytick',yticks,'yticklabel',yticklabels,'xlim',[0 month+1],'xtick',[1:month])
+	ylabel(['Cumulative cost (' currency ')']);
+	set(gca,'tickdir','out','xlim',[0 month+1],'xtick',[1:month])
 	xlabel('Months into the future')
 	
 	%cumulative bar graph
@@ -233,7 +232,7 @@ if strcmpi(plots,'all')==1 | strcmpi(plots,'results')==1
 	for i=1:size(costmean,2)
 		bar(i,sum(costmean(:,i)),'facecolor', colors(i,:))
 		text(i,sum(costmean(:,i)),num2str(sum(costmean(:,i))),'rotation',90,'verticalalign','middle','horizontalalign','right','color','w')
-		text(i,0,[num2str(quota(i)) 'GB'],'rotation',90,'verticalalign','middle','horizontalalign','left','color','w')
+		text(i,sum(costmean(:,i)),[' ' num2str(quota(i)) 'GB'],'rotation',90,'verticalalign','middle','horizontalalign','left','color','k')
 	end
 	axis off
 	
