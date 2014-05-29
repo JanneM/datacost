@@ -19,7 +19,7 @@ function datacost(data,varargin)
 %
 %OPTIONAL INPUTS (defualt value if not specified) {input type}:
 %	month (24) number of months to run simulation into the future.
-%	tax (0) consumption tax rate as percentage, e.g., 8% is '8'
+%	tax (0) consumption tax rate as percentage, e.g., 8% is '8' (not implemented yet)
 %	line (800) {scaler} Cost for each additional SIM card. Defulat based on NTT Docomo lowest cost with Mopera ISP.
 %	addamount (1) {scaler} Bundeled amout of additional data that is purchased after quota is exceeded.
 %	addcost (1000) {scaler} Cost of the data specified in addamount. Defualt is 1 GB at 1,000 yen.
@@ -34,73 +34,106 @@ function datacost(data,varargin)
 % However, the validity of this approach is questionable since realistically, the number of input data
 % will most likely be very few.
 % http://www.mathworks.com/matlabcentral/fileexchange/34943-fit-all-valid-parametric-probability-distributions-to-data
+%
+% NOTE TO OCTAVE USERS.
+%
+% input parsing is disabled if environment is not MATLAB until Octave general gets working parser.
+% fitdist function is not implemented in octave and PDFs cannot be created with some of the likely distrubtions.
+% When running in Octave, all data are assumed to be normally distributed.
+% to run in octave, ALL INPUTS ARE REQUIRED and must be entered in the EXACT order below:
+%
+%	datacost(data,month,line,addamount,addcost, thresh,planprice, quota,currency,plot)
 
 tic
 
-p = inputParser;
-p.KeepUnmatched = true;
-p.CaseSensitive = false;
-p.FunctionName='datacost';
-
-%set defaults for options
-d_month=24;
-d_tax=[];
-d_line=800;
-d_addamount=1;
-d_addcost=1000;
-d_thresh=4;
-if length(data)<=2
-	d_planprice=[3500 5000 5700];
-	d_quota=[2 5 7];
-else
-	d_planprice=[9500 12500 16000 22500];
-	d_quota=[10 15 20 30];
+%determine if environment is MATLAB
+vv=ver;
+for i=1:length(vv)
+	v(i)=strcmp('MATLAB',vv(i).Name);
 end
-d_dist=repmat({'normal'},1,length(data));
-d_currency='man yen';
-d_plot='all';
+v=sum(v);
+clear vv
 
-if datenum(version('-date'))<datenum('May 19, 2013')
-	addParamValue(p,'month',d_month,@isnumeric);
-	addParamValue(p,'tax',d_tax,@isnumeric);
-	addParamValue(p,'line',d_line,@isnumeric);
-	addParamValue(p,'addamount',d_addamount,@isnumeric);
-	addParamValue(p,'addcost',d_addcost,@isnumeric);
-	addParamValue(p,'thresh',d_thresh,@isnumeric);
-	addParamValue(p,'planprice',d_planprice,@isnumeric);
-	addParamValue(p,'quota',d_quota,@isnumeric);
-	addParamValue(p,'dist',d_dist,@iscell);
-	addParamValue(p,'currency',d_currency,@ischar);
-	addParamValue(p,'plot',d_plot,@ischar);
+%parse inputs only if detected environment is MATLAB
+if v==1;
+	p = inputParser;
+	p.KeepUnmatched = true;
+	p.CaseSensitive = false;
+	p.FunctionName='datacost';
+	
+	%set defaults for options
+	d_month=24;
+	d_tax=[];
+	d_line=800;
+	d_addamount=1;
+	d_addcost=1000;
+	d_thresh=4;
+	if length(data)<=2
+		d_planprice=[3500 5000 5700];
+		d_quota=[2 5 7];
+	else
+		d_planprice=[9500 12500 16000 22500];
+		d_quota=[10 15 20 30];
+	end
+	d_dist=repmat({'normal'},1,length(data));
+	d_currency='man yen';
+	d_plot='all';
+	
+	% 2014a: "addParamValue is not recommended. Use addParameter instead."
+	% addParameter not in older versions. Either added from 2013b or 2014a.
+	% Unclear which version numbers, but google results seems to narrow into a date.
+	% Will remove data and replace with version or build once confirmed.
+	if datenum(version('-date'))<datenum('May 19, 2013')
+		addParamValue(p,'month',d_month,@isnumeric);
+		addParamValue(p,'tax',d_tax,@isnumeric);
+		addParamValue(p,'line',d_line,@isnumeric);
+		addParamValue(p,'addamount',d_addamount,@isnumeric);
+		addParamValue(p,'addcost',d_addcost,@isnumeric);
+		addParamValue(p,'thresh',d_thresh,@isnumeric);
+		addParamValue(p,'planprice',d_planprice,@isnumeric);
+		addParamValue(p,'quota',d_quota,@isnumeric);
+		addParamValue(p,'dist',d_dist,@iscell);
+		addParamValue(p,'currency',d_currency,@ischar);
+		addParamValue(p,'plot',d_plot,@ischar);
+	else
+		addParameter(p,'month',d_month,@isnumeric);
+		addParameter(p,'tax',d_tax,@isnumeric);
+		addParameter(p,'line',d_line,@isnumeric);
+		addParameter(p,'addamount',d_addamount,@isnumeric);
+		addParameter(p,'addcost',d_addcost,@isnumeric);
+		addParameter(p,'thresh',d_thresh,@isnumeric);
+		addParameter(p,'planprice',d_planprice,@isnumeric);
+		addParameter(p,'quota',d_quota,@isnumeric);
+		addParameter(p,'dist',d_dist,@iscell);
+		addParameter(p,'currency',d_currency,@ischar);
+		addParameter(p,'plot',d_plot,@ischar);
+	end
+	
+	%parse varargin
+	parse(p,varargin{:});
+	month=p.Results.month;
+	tax=p.Results.tax;
+	extraline=p.Results.line;
+	addamount=p.Results.addamount;
+	addcost=p.Results.addcost;
+	thresh=p.Results.thresh;
+	price=p.Results.planprice;
+	quota=p.Results.quota;
+	dist=p.Results.dist;
+	currency=p.Results.currency;
+	plots=p.Results.plot;
+
 else
-	addParameter(p,'month',d_month,@isnumeric);
-	addParameter(p,'tax',d_tax,@isnumeric);
-	addParameter(p,'line',d_line,@isnumeric);
-	addParameter(p,'addamount',d_addamount,@isnumeric);
-	addParameter(p,'addcost',d_addcost,@isnumeric);
-	addParameter(p,'thresh',d_thresh,@isnumeric);
-	addParameter(p,'planprice',d_planprice,@isnumeric);
-	addParameter(p,'quota',d_quota,@isnumeric);
-	addParameter(p,'dist',d_dist,@iscell);
-	addParameter(p,'currency',d_currency,@ischar);
-	addParameter(p,'plot',d_plot,@ischar);
+	month=varargin{1};
+	extraline=varargin{2};
+	addamount=varargin{3};
+	addcost=varargin{4};
+	thresh=varargin{5};
+	price=varargin{6};
+	quota=varargin{7};
+	currency=varargin{8};
+	plots=varargin{9};
 end
-
-%parse varargin
-parse(p,varargin{:});
-month=p.Results.month;
-tax=p.Results.tax;
-extraline=p.Results.line;
-addamount=p.Results.addamount;
-addcost=p.Results.addcost;
-thresh=p.Results.thresh;
-price=p.Results.planprice;
-quota=p.Results.quota;
-dist=p.Results.dist;
-currency=p.Results.currency;
-plots=p.Results.plot;
-
-
 
 e=3;
 numsim=10^e;
@@ -110,33 +143,52 @@ costm=zeros(month,length(quota),numsim);
 costm(:,1:2,:)=costm(:,1:2,:)+(length(data)-1)*extraline;
 
 for i=1:length(data)
-	%gmdistribution requires column vectors
-	if size(data{i},2)>1
-		data{i}=data{i}';
-	end
-	pdfdata{i}=sort(data{i});
-	pdfdata{i}(find(isnan(pdfdata{i})))=[];
-	if max(quota)>max(pdfdata{i})
-		x{i}=[pdfdata{i}(1):.01:max(quota)]';
-	else
-		x{i}=[pdfdata{i}(1):.01:max(pdfdata{i})]';
-	end
-	if strcmp('bimodal',dist{i})==1
-		pd{i}=gmdistribution.fit(pdfdata{i},2);
-		%random cannot create 2 dimensional matrix with gaussian mixed distribution object
-		for j=1:numsim
-			datam(:,j,i)=random(pd{i},month);
+	if v==1
+		%gmdistribution requires column vectors
+		if size(data{i},2)>1
+			data{i}=data{i}';
 		end
-	elseif strcmp('uniform',dist{i})==1
-		%not yet implemented
-	else
-		pd{i}=fitdist(pdfdata{i},dist{i});
-		if datenum(version('-date'))>=datenum('May 19, 2013')
-			pd{i}=truncate(pd{i},min(pdfdata{i}),max(pdfdata{i}));
+		pdfdata{i}=sort(data{i});
+		pdfdata{i}(find(isnan(pdfdata{i})))=[];
+		if max(quota)>max(pdfdata{i})
+			x{i}=[pdfdata{i}(1):.01:max(quota)]';
+		else
+			x{i}=[pdfdata{i}(1):.01:max(pdfdata{i})]';
 		end
-		datam(:,:,i)=random(pd{i},month,numsim);
+		if strcmp('bimodal',dist{i})==1
+			pd{i}=gmdistribution.fit(pdfdata{i},2);
+			%random cannot create 2 dimensional matrix with gaussian mixed distribution object
+			for j=1:numsim
+				datam(:,j,i)=random(pd{i},month);
+			end
+		elseif strcmp('uniform',dist{i})==1
+			%not yet implemented
+		else
+			pd{i}=fitdist(pdfdata{i},dist{i});
+			if datenum(version('-date'))>=datenum('May 19, 2013')
+				pd{i}=truncate(pd{i},min(pdfdata{i}),max(pdfdata{i}));
+			end
+			datam(:,:,i)=random(pd{i},month,numsim);
+		end
+		pdfs{i}=pdf(pd{i},x{i});
+	else
+		m(i)=mean(data{i});
+		s(i)=std(data{i});
+		r{i}=m(i)+s(i).*randn(10000,1);
+		if min(quota)<min(data{i})
+			x{i}=min(quota);
+		else
+			x{i}=min(data{i});
+		end
+		if max(quota)>max(data{i})
+			x{i}(2)=max(quota);
+		else
+			x{i}(2)=max(data{i});
+		end
+		r{i}(find(r{i}<min(x{i})))=[];
+%		r{i}(find(r{i}>max(x{i})))=[];
+		datam(:,:,i)=r{i}(randi(length(r{i}),month,numsim));
 	end
-	pdfs{i}=pdf(pd{i},x{i});
 end
 
 %sum all devices
@@ -216,10 +268,20 @@ if strcmpi(plots,'all')==1 | strcmpi(plots,'results')==1
 	axes('units','pixels','position',axessize)
 	hold(gca,'on')
 	for i=1:size(cummean,2)
-		if strcmp('man yen',currency)==1
-			shadedErrorBar(1:month,cummean(:,i)/10^4,cumstd(:,i)/10^4,{'color',colors(i,:)},1)
+		if v==1
+			if strcmp('man yen',currency)==1
+				shadedErrorBar(1:month,cummean(:,i)/10^4,cumstd(:,i)/10^4,{'color',colors(i,:)},1)
+			else
+				shadedErrorBar(1:month,cummean(:,i),cumstd(:,i),{'color',colors(i,:)},1)
+			end
 		else
-			shadedErrorBar(1:month,cummean(:,i),cumstd(:,i),{'color',colors(i,:)},1)
+			if strcmp('man yen',currency)==1
+				h=errorbar(1:month,cummean(:,i)/10^4,cumstd(:,i)/10^4,cumstd(:,i)/10^4);
+				set(h,'color',colors(i,:))
+			else
+				h=errorbar(1:month,cummean(:,i),cumstd(:,i));
+				set(h,'color',colors(i,:))
+			end
 		end
 	end
 	ylabel(['Cumulative cost (' currency ')']);
@@ -227,57 +289,76 @@ if strcmpi(plots,'all')==1 | strcmpi(plots,'results')==1
 	xlabel('Months into the future')
 	
 	%cumulative bar graph
+	if v==1
+		textprop={'verticalalign','middle','horizontalalign','left'};
+	else
+		textprop={'verticalalignment','middle','horizontalalignment','left'};
+	end
+	
 	axes('units','pixels','position',[465 45 115 115])
 	hold(gca,'on')
 	for i=1:size(costmean,2)
 		bar(i,sum(costmean(:,i)),'facecolor', colors(i,:))
-		text(i,sum(costmean(:,i)),num2str(sum(costmean(:,i))),'rotation',90,'verticalalign','middle','horizontalalign','right','color','w')
-		text(i,sum(costmean(:,i)),[' ' num2str(quota(i)) 'GB'],'rotation',90,'verticalalign','middle','horizontalalign','left','color','k')
+		text(i,0,num2str(sum(costmean(:,i))),textprop{:},'rotation',90,'color','w')
+		text(i,sum(costmean(:,i)),[' ' num2str(quota(i)) 'GB'],textprop{:},'rotation',90,'color','k')
 	end
 	axis off
-	
-	%probability horizontal bar
-	barbox=[55/figsize(3) 195/figsize(4) 175/figsize(3) 40/figsize(4)];
-	if isempty(find(prob==100))==0
-		annotation('rectangle',barbox,'facecolor',colors(find(prob==100),:))
-		annotation('textbox',[axessize(1)/figsize(3) .55, .1 .1],'string','0%','horizontalalignment','left','edgecolor','none')
-		annotation('textbox',[barbox(1)+barbox(3)-.025 .55, .1 .1],'string','100%','horizontalalignment','left','edgecolor','none')
-	else
-		st=barbox(1);
-		for i=1:length(prob)
-			annotation('rectangle',[st barbox(2) barbox(3)*(prob(i)/100) barbox(4)],'facecolor',colors(i,:))
-			st=st+(barbox(3)*(prob(i)/100));
+	if v==1
+		%probability horizontal bar
+		barbox=[55/figsize(3) 195/figsize(4) 175/figsize(3) 40/figsize(4)];
+		if isempty(find(prob==100))==0
+			annotation('rectangle',barbox,'facecolor',colors(find(prob==100),:))
+			annotation('textbox',[axessize(1)/figsize(3) .55, .1 .1],'string','0%','horizontalalignment','left','edgecolor','none')
+			annotation('textbox',[barbox(1)+barbox(3)-.025 .55, .1 .1],'string','100%','horizontalalignment','left','edgecolor','none')
+		else
+			st=barbox(1);
+			for i=1:length(prob)
+				annotation('rectangle',[st barbox(2) barbox(3)*(prob(i)/100) barbox(4)],'facecolor',colors(i,:))
+				st=st+(barbox(3)*(prob(i)/100));
+			end
+			annotation('textbox',[axessize(1)/figsize(3) .55, .1 .1],'string','0%','horizontalalignment','left','edgecolor','none')
+			annotation('textbox',[barbox(1)+barbox(3)-.025 .55, .1 .1],'string','100%','horizontalalignment','left','edgecolor','none')
 		end
-		annotation('textbox',[axessize(1)/figsize(3) .55, .1 .1],'string','0%','horizontalalignment','left','edgecolor','none')
-		annotation('textbox',[barbox(1)+barbox(3)-.025 .55, .1 .1],'string','100%','horizontalalignment','left','edgecolor','none')
+		annotation('textbox',[barbox(1) .79, barbox(3) .1],'string',{['Percent chance of lowest cost'] ['over ' num2str(month) ' month period']},'horizontalalignment','center','edgecolor','none')
 	end
-	annotation('textbox',[barbox(1) .79, barbox(3) .1],'string',{['Percent chance of lowest cost'] ['over ' num2str(month) ' month period']},'horizontalalignment','center','edgecolor','none')
-
 end
 
 %PDFs figures
 if strcmpi(plots,'all')==1 | strcmpi(plots,'pdfs')==1
-	for i=1:length(pdfdata)
-		%histogram of pdfdata
-		figure('position',[500 500 300 300])
-		axes('units','pixels','position',[42 50 215 215])
-		hist(pdfdata{i})
-		h=findobj(gca,'type','patch');
-		set(h,'facecolor','k','edgecolor','w')
-		xlimits=get(gca,'xlim');
-		set(gca,'tickdir','out','box','off')
-		ylabel('N')
-		xlabel('Monthly data usage (GB)')
-	
-		%PDF
-		axes('units','pixels','position',[42 50 215 215])
-		plot(x{i},pdfs{i},'color',[1 0 0])
-		set(gca,'xlim',xlimits,'box','off','tickdir','out','yaxislocation','right','xaxislocation','top','color','none','xticklabel',[])
-		ylabel('Probability')
-		if length(dist)==1
-			title(dist{:})
-		else
-			title(dist{i})
+	if v==1
+		for i=1:length(pdfdata)
+			%histogram of pdfdata
+			figure('position',[500 500 300 300])
+			axes('units','pixels','position',[42 50 215 215])
+			hist(pdfdata{i})
+			h=findobj(gca,'type','patch');
+			set(h,'facecolor','k','edgecolor','w')
+			xlimits=get(gca,'xlim');
+			set(gca,'tickdir','out','box','off')
+			ylabel('N')
+			xlabel('Monthly data usage (GB)')
+			
+			%PDF
+			axes('units','pixels','position',[42 50 215 215])
+			plot(x{i},pdfs{i},'color',[1 0 0])
+			set(gca,'xlim',xlimits,'box','off','tickdir','out','yaxislocation','right','xaxislocation','top','color','none','xticklabel',[])
+			ylabel('Probability')
+			if length(dist)==1
+				title(dist{:})
+			else
+				title(dist{i})
+			end
+		end
+	else
+		for i=1:length(data)
+			figure('position',[500 500 300 300])
+			axes('units','pixels','position',[42 50 215 215])
+			histfit(data{i},10)
+			ylabel('N')
+			xlabel('Monthly data usage (GB) and fit')
+			xlimits=get(gca,'xlim');
+			set(gca,'tickdir','out','box','on','xlim',[min(x{i}) xlimits(2)])
+			title('Usage data with normal fit')
 		end
 	end
 end
