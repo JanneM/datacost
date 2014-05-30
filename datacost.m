@@ -20,7 +20,7 @@ function datacost(data,varargin)
 %OPTIONAL INPUTS (defualt value if not specified) {input type}:
 %	month (24) number of months to run simulation into the future.
 %	tax (0) consumption tax rate as percentage, e.g., 8% is '8' (not implemented yet)
-%	line (800) {scaler} Cost for each additional SIM card. Defulat based on NTT Docomo lowest cost with Mopera ISP.
+%	line (800 | 2500) {scaler} Cost for each additional SIM card. Defulat based on NTT Docomo lowest cost with spmode ISP. 2 devices is assumed one is data-only.
 %	addamount (1) {scaler} Bundeled amout of additional data that is purchased after quota is exceeded.
 %	addcost (1000) {scaler} Cost of the data specified in addamount. Defualt is 1 GB at 1,000 yen.
 %	thresh (4) {sclaer} Number of days remaining in the month up until which additional data are purchased.
@@ -64,16 +64,17 @@ if v==1;
 	%set defaults for options
 	d_month=24;
 	d_tax=[];
-	d_line=800;
 	d_addamount=1;
 	d_addcost=1000;
 	d_thresh=4;
 	if length(data)<=2
 		d_planprice=[3500 5000 5700];
 		d_quota=[2 5 7];
+		d_line=300+500+1700 %spmode + share fee + data-only bullshit base fee.
 	else
 		d_planprice=[9500 12500 16000 22500];
 		d_quota=[10 15 20 30];
+		d_line=300+500;
 	end
 	d_dist=repmat({'normal'},1,length(data));
 	d_currency='man yen';
