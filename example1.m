@@ -12,21 +12,32 @@ user4=[2.50; 2.10; 2.23; 1.91; 2.01; 3.05; 3.50; 1.12; 0.80; 2.01; 1.20; 2.70; 4
 data={user1 user2 user3 user4};
 
 %distributions for PDFs
-if datenum(version('-date'))<datenum('May 19, 2013')
-	dist={'gamma' 'normal' 'ev','bimodal'};
-else
-	dist={'gamma' 'normal' 'extremevalue','bimodal'};
-end
+dist={'gamma' 'normal' 'ev','bimodal'};
+
+%if you bet an error in newer versions use this instead.
+%dist={'gamma' 'normal' 'extremevalue','bimodal'};
 
 %determine mean and meadian usage
 for i=1:length(data)
-	m(1,i)=nanmean(data{i});
-	m(2,i)=nanmedian(data{i});
-	s(i)=nanstd(data{i});
+	m(1,i)=mean(data{i});
+	m(2,i)=median(data{i});
+	s(i)=std(data{i});
 end
 disp('low range, mean high range')
 disp([sum(m(1,:))-sum(s) sum(m(1,:)) sum(m(1,:))+sum(s)])
 disp('low range, median high range')
 disp([sum(m(2,:))-sum(s) sum(m(2,:)) sum(m(2,:))+sum(s)])
 
-datacost_new(data,'dist',dist);
+%determine if environment is MATLAB
+vv=ver;
+for i=1:length(vv)
+	v(i)=strcmp('MATLAB',vv(i).Name);
+end
+v=sum(v);
+clear vv
+
+if v==1
+	datacost(data,'dist',dist);
+else
+	datacost(data,24,800,1,1000, 4,[9500 12500 16000 22500], [10 15 20 30],'man yen','all')
+end
